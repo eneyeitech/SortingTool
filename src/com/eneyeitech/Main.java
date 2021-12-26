@@ -1,6 +1,8 @@
 package com.eneyeitech;
 
+import java.io.*;
 import java.util.*;
+
 
 enum Inputs {
     LINE,
@@ -21,27 +23,79 @@ public class Main {
     private static NumericCountCompare numericCountCompare = new NumericCountCompare();
     private static WordCountCompare wordCountCompare = new WordCountCompare();
     private static LineCountCompare lineCountCompare = new LineCountCompare();
+    private static boolean fileReading = false;
+    private static boolean fileWriting = false;
+    private static int wIndex;
+    private static Scanner scanner;
+    private static Writer Candidateoutput = null;
 
     private static boolean natural = true;
 
     public static void main(final String[] args) {
-        Scanner scanner = new Scanner(System.in);
+
         Inputs inputs;
         boolean found = Arrays.asList(args).contains("-dataType");
         boolean sorting = Arrays.asList(args).contains("-sortIntegers");
         int index = Arrays.asList(args).indexOf("-dataType");
-
+        List<String> valid = List.of("line","word","long","bycount","natural", "-datatype", "-sortingtype", "-inputfile", "-outputfile");
         boolean sortingType = Arrays.asList(args).contains("-sortingType");
         int index2 = Arrays.asList(args).indexOf("-sortingType");
 
+        fileReading = Arrays.asList(args).contains("-inputFile");
+        int rIndex = Arrays.asList(args).indexOf("-inputFile");
+
+        if (fileReading) {
+            try {
+                String fileName = args[rIndex + 1];
+                File file = new File(fileName);
+                scanner = new Scanner(file);
+            } catch (ArrayIndexOutOfBoundsException e){
+                scanner = new Scanner(System.in);
+            } catch (FileNotFoundException e) {
+                scanner = new Scanner(System.in);
+                e.printStackTrace();
+            }
+        } else {
+            scanner = new Scanner(System.in);
+        }
+
+        fileWriting = Arrays.asList(args).contains("-outputFile");
+        wIndex = Arrays.asList(args).indexOf("-outputFile");
+
+        if (fileWriting) {
+            try {
+                String fileName = args[wIndex + 1];
+                File file = new File(fileName);
+                Candidateoutput = new BufferedWriter(new FileWriter(file));
+
+            } catch (ArrayIndexOutOfBoundsException e){
+                fileWriting = false;
+            } catch (IOException e) {
+                fileWriting = false;
+                e.printStackTrace();
+            }
+        }
+
+
         if (sortingType) {
+            boolean natural = Arrays.asList(args).contains("natural");
+            boolean bycount = Arrays.asList(args).contains("byCount");
+            if (!natural && !bycount) {
+                System.out.println("No sorting type defined!");
+                return;
+            }
             if (args.length >= 2) {
                 if ("natural".equals(args[index2 + 1].toLowerCase())) {
-                    natural = true;
+                    Main.natural = true;
                 } else if ("bycount".equals(args[index2 + 1].toLowerCase())) {
-                    natural = false;
+                    Main.natural = false;
+                } else {
+                    if (!valid.contains(args[index2 + 1].toLowerCase())) {
+                        System.out.println("-arg\" is not a valid parameter. It will be skipped.");
+                    }
                 }
             }
+
         }
 
         if (sorting) {
@@ -49,7 +103,22 @@ public class Main {
             return;
         }
         if (found) {
+            boolean lon = Arrays.asList(args).contains("long");
+            boolean lin = Arrays.asList(args).contains("line");
+            boolean wor = Arrays.asList(args).contains("word");
+            if (!lon && !lin && !wor) {
+                System.out.println("No data type defined!");
+                return;
+            }
+
+            for (String arg : args) {
+                if (!valid.contains(arg.toLowerCase())) {
+                    System.out.printf("\"%s\" is not a valid parameter. It will be skipped.\n", arg);
+                }
+            }
+
             if (args.length >= 2) {
+
                 if ("long".equals(args[index + 1].toLowerCase())) {
                     inputs = Inputs.values()[1];
                     choice(inputs, scanner);
@@ -63,12 +132,14 @@ public class Main {
                 } else {
                     inputs = Inputs.values()[2];
                     choice(inputs, scanner);
+
                 }
             } else {
                 inputs = Inputs.values()[2];
                 choice(inputs, scanner);
             }
         } else {
+
             inputs = Inputs.values()[2];
             choice(inputs, scanner);
         }
@@ -132,14 +203,17 @@ public class Main {
     }
 
     public static void processNumerals(Scanner scanner){
-        while (scanner.hasNextLong()) {
+        String entry = "";
+        while (scanner.hasNext()) {
             try {
-                long number = scanner.nextLong();
+                entry = scanner.next();
+                long number = Long.parseLong(entry);
                 numerics.add(new Numeric(number));
             } catch (NumberFormatException e) {
-
+                System.out.printf("\"%s\" is not a long. It will be skipped.", entry);
             }
         }
+        scanner.close();
         Processor<Numeric> numericProcessor = new Processor<>(numerics);
         float total = numericProcessor.getCount();
         long maxNumber = numericProcessor.getMax().getValue();
@@ -168,6 +242,7 @@ public class Main {
 
             }
         }
+        scanner.close();
         Processor<Numeric> numericProcessor = new Processor<>(numerics);
         float total = numericProcessor.getCount();
         List<Numeric> sortedN = numericProcessor.sortedList();
@@ -183,7 +258,7 @@ public class Main {
 
             }
         }
-
+        scanner.close();
         Processor<Word> numericProcessor = new Processor<>(words);
         float total = numericProcessor.getCount();
         String maxWord = numericProcessor.getMax().getValue();
@@ -213,6 +288,7 @@ public class Main {
 
             }
         }
+        scanner.close();
 
         Processor<Line> numericProcessor = new Processor<>(lines);
         float total = numericProcessor.getCount();
@@ -295,53 +371,153 @@ public class Main {
     }
 
     public static void printNumbers(float count) {
-        System.out.printf("Total numbers: %s.\n" +
-                "Sorted data: ", (int)count);
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total numbers: %s.%s" +
+                "Sorted data: ", (int)count, separator);
+
+        builder.append(out);
         for (Numeric n : numerics) {
-            System.out.print(n.getValue() + " ");
+            builder.append(n.getValue()+" ");
         }
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
+        }
+
     }
 
     public static void printLongCount(float numCount){
         Collections.sort(numerics2, numericCountCompare);
-        System.out.printf("Total numbers: %s.\n", (int)numCount);
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total numbers: %s.%s", (int)numCount, separator);
+        builder.append(out);
         for (Numeric n : numerics2) {
             float per = (n.getCount() / numCount) * 100;
-            System.out.printf("%s: %s time(s), %s%%\n", n.getValue(), n.getCount(), (int)per);
+            String o = String.format("%s: %s time(s), %s%%%s", n.getValue(), n.getCount(), (int)per,separator);
+            builder.append(o);
         }
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
+        }
+
     }
 
     public static void printWords(float count) {
-        System.out.printf("Total words: %s.\n" +
-                "Sorted data: ", (int)count);
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total words: %s.%s" +
+                "Sorted data: ", (int)count, separator);
+
+        builder.append(out);
         for (Word n : words) {
-            System.out.print(n.getValue() + " ");
+            builder.append(n.getValue()+" ");
+        }
+
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
         }
     }
 
     public static void printWordCount(float numCount){
         Collections.sort(words2, wordCountCompare);
-        System.out.printf("Total words: %s.\n", (int)numCount);
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total words: %s.%s", (int)numCount, separator);
+        builder.append(out);
         for (Word n : words2) {
             float per = (n.getCount() / numCount) * 100;
-            System.out.printf("%s: %s time(s), %s%%\n", n.getValue(), n.getCount(), (int)per);
+            String o = String.format("%s: %s time(s), %s%%%s", n.getValue(), n.getCount(), (int)per,separator);
+            builder.append(o);
+        }
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
         }
     }
 
     public static void printLines(float count) {
-        System.out.printf("Total lines: %s\n" +
-                "Sorted data:\n", (int)count);
+        //System.out.printf("Total lines: %s\n" +
+        //      "Sorted data:\n", (int)count);
+
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total lines: %s.%s" +
+                "Sorted data:%s", (int)count, separator, separator);
+        builder.append(out);
         for (Line n : lines) {
-            System.out.print(n.getValue() + "\n");
+            //System.out.print(n.getValue() + "\n");
+            builder.append(n.getValue() + separator);
+        }
+
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
         }
     }
 
     public static void printLineCount(float numCount){
         Collections.sort(lines2, lineCountCompare);
-        System.out.printf("Total lines: %s\n", (int)numCount);
+        //System.out.printf("Total lines: %s\n", (int)numCount);
+        StringBuilder builder = new StringBuilder();
+        String separator = System.getProperty("line.separator");
+        String out = String.format("Total lines: %s.%s", (int)numCount, separator);
+        builder.append(out);
         for (Line n : lines2) {
             float per = (n.getCount() / numCount) * 100;
-            System.out.printf("%s: %s time(s), %s%%\n", n.getValue(), n.getCount(), (int)per);
+            //System.out.printf("%s: %s time(s), %s%%\n", n.getValue(), n.getCount(), (int)per);
+            String o = String.format("%s: %s time(s), %s%%%s", n.getValue(), n.getCount(), (int)per,separator);
+            builder.append(o);
+        }
+
+        if (fileWriting) {
+            try {
+                Candidateoutput.write(builder.toString());
+                Candidateoutput.close();
+            } catch (IOException e) {
+                System.out.println(builder.toString());
+            }
+            return;
+        } else {
+            System.out.println(builder.toString());
         }
     }
 
@@ -486,8 +662,6 @@ class Line implements Comparable{
         }
     }
 }
-
-
 
 class Processor<T extends Comparable> {
     private List<T> list;
