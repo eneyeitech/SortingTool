@@ -126,7 +126,7 @@ public class Main {
             } else if (o1.getCount() < o2.getCount()) {
                 return -1;
             } else {
-                return 0;
+                return o1.getValue().compareTo(o2.getValue());
             }
         }
     }
@@ -257,11 +257,11 @@ public class Main {
         wordTreeMap = new TreeMap<>();
         for (int i = 0; i < words.size(); i++) {
             for (int j = 0; j < words.size(); j++) {
-                    if (i != j) {
-                        if (words.get(i).getValue().equals(words.get(j).getValue())) {
-                            count++;
-                        }
+                if (i != j) {
+                    if (words.get(i).getValue().equals(words.get(j).getValue())) {
+                        count++;
                     }
+                }
             }
             words.get(i).setCount(count);
             wordTreeMap.put(words.get(i), count);
@@ -329,7 +329,7 @@ public class Main {
     }
 
     public static void printLines(float count) {
-        System.out.printf("Total lines: %s.\n" +
+        System.out.printf("Total lines: %s\n" +
                 "Sorted data:\n", (int)count);
         for (Line n : lines) {
             System.out.print(n.getValue() + "\n");
@@ -338,7 +338,7 @@ public class Main {
 
     public static void printLineCount(float numCount){
         Collections.sort(lines2, lineCountCompare);
-        System.out.printf("Total lines: %s.\n", (int)numCount);
+        System.out.printf("Total lines: %s\n", (int)numCount);
         for (Line n : lines2) {
             float per = (n.getCount() / numCount) * 100;
             System.out.printf("%s: %s time(s), %s%%\n", n.getValue(), n.getCount(), (int)per);
@@ -489,22 +489,22 @@ class Line implements Comparable{
 
 
 
-class Processor<T extends Comparable>{
+class Processor<T extends Comparable> {
     private List<T> list;
     private TreeSet<T> c;
     private TreeMap<T, Integer> entry;
 
-    public Processor(List<T> list){
+    public Processor(List<T> list) {
         this.list = new ArrayList<>(list);
     }
 
-    public float getCount(){
+    public float getCount() {
         return list.size();
     }
 
-   public T getMax(){
+    public T getMax() {
         return (T) Collections.max(list);
-   }
+    }
 
     public List<T> sortedList() {
         List<T> a = new ArrayList<>(list);
